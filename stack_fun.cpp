@@ -1,17 +1,17 @@
 #include "stack_funcs.h"
 
+extern FILE *dump_file;
+
 
 int stack_ctor (Stack *St, int capacity) {
 
     assert (St != nullptr);
 
-    St->capacity = capacity;
+    St->capacity = capacity + 1;
     
     St->data = (int *) calloc (St->capacity, sizeof(int)); 
 
     St->size = 0;
-
-    stack_state (St);
 
     return 0;
 }
@@ -19,13 +19,13 @@ int stack_ctor (Stack *St, int capacity) {
 
 int stack_push (Stack *St, int value) {
 
-    assert (St != nullptr);
+    OK(St, dump_file);
 
     if (++St->size > St->capacity) {
-        stack_resize (St);
-    }
+        st_resize
+    }                 
 
-    St->data [St->size - 1] = value;                  
+    St->data [St->size - 1] = value;
 
     return 0;
 }
@@ -45,13 +45,15 @@ int stack_resize (Stack *St) {
 
 int stack_pop (Stack *St) {
 
-    assert (St != nullptr);
+    OK(St, dump_file);
 
     int x = St->data [St->size - 1];
 
     St->data [St->size - 1] = POISON;
 
-    stack_state (St);
+    if (2 * St->size + 1< St->capacity) {
+        st_resize
+    }
 
     return x;
 }
@@ -73,36 +75,53 @@ int stack_dtor (Stack **St) {
     return 0;
 }
 
-int stack_state (Stack *St) {
 
-    assert (St != nullptr);
-    if (St->data == nullptr) 
+int stack_verificator (Stack *St) {
+
+    if (!St)
+        return BAD_PTR_ERROR;
+
+    if (St->size > St->capacity)
+        return MEM_LACK;
+
+    // if (St->capacity < 0)
+    //     return ZERO_CAPACITY;
+
+    if(!St->data)
         return CALLOC_ERROR;
 
-    //if (St->data [St->size - 1] != POISON) 
-        //return POISON_ERR;
+    //if (St->size == 0)                      //stack underflow = pop from empty stack *
+        //return STACK_UNDERFLOW;                                        
+                                                                
     else return 0;
 }
 
 
-void err_print (Stack *St) {                    //расписать printfыыы
+void dump_print (Stack *St, FILE *dump_file) {                   
 
     switch  (St->err_f) {
 
-        case CALLOC_ERROR:
-            printf ("calloc error\n");
+        case BAD_PTR_ERROR:
+            error_print(St, BAD_PTR_ERROR, dump_file);
             break;
 
         case MEM_LACK:
-            printf ("mem lack error\n");
+            error_print(St, MEM_LACK, dump_file);
             break;
 
-        case POISON_ERR:
-            printf ("poisonous error\n");
+        case STACK_UNDERFLOW:                                       //to do
+            error_print(St, STACK_UNDERFLOW, dump_file);
+            break;
+            
+        case ZERO_CAPACITY:
+            error_print(St, ZERO_CAPACITY, dump_file);
+            break;
+
+        case CALLOC_ERROR:
+            error_print(St, CALLOC_ERROR, dump_file);
             break;
 
         default:
-            //printf ("undefined error!\n");
             break;            
     }
 }
