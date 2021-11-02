@@ -2,60 +2,89 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <typeinfo>
-                                                //memset ?? for what?
-enum error_consts_ {                                  //rename
-    
-    POISON          = 0xBADBEDA,                        //make up my own hexspeak
-    ZERO_MEMSET     = 0xF0,
-    CALLOC_ERROR    = 1,
-    MEM_LACK        = 2,
-    STACK_UNDERFLOW = 3,
-    BAD_PTR_ERROR   = 4,
-    ZERO_CAPACITY   = 5
+                                                //memset!
+												//make up my own hexspeak?
+												//typeid(reason).name()    ???
+enum error_consts_ {                //rename
+
+    STACK_UNDERFLOW_ERROR = 1,
+	ZERO_CAPACITY_ERROR   = 2,
+	ZERO_MEMSET_ERROR     = 3,
+	BAD_ALLOC_ERROR       = 4,
+	MEM_LACK_ERROR        = 5,
+    BAD_PTR_ERROR         = 6,
 };
+
+enum other_consts_ {
+	
+	MIN_CAPACITY_CONST = 4;
+    POISON             = 0xBADBEDA
+}
+
+
 
 
 typedef struct Stack {
 
-    size_t size = 0;           //current stack size
-    size_t capacity = 0;      
+    size_t size = 0;     
+    size_t capacity = 0;        //или if до уменьшения size
 
     int *data = nullptr; 
-    int err_f = 0;
+    int err_f = ERR_CONST;
 } Stack;
 
 
-#define OK(St, dump) St->err_f = stack_verificator (St);\
-        dump_print (St, dump_file);\
-        if (St->err_f != 0) return 0;
+
+
+
+#define OK(Stack_ptr, dump) Stack_ptr->err_f = stack_verificator (St);                \
+		                    if (dump_file == nullptr) {                                \
+					        	#Stack_ptr->err_f = BAD_PTR_ERROR;                      \
+					       		return 0;}                                               \
+                            dump_print (St, dump_file, __FILE__, __LINE__, __FUNCTION__); \
+                            if (St->err_f != ERR_CONST) return 0;                                    
 
                                                                                      
 
-#define error_print(St, err_const, dump) fprintf (dump, "Stack (stack pointer: %s) error: called from %s (line %d) function %s (error const is %s)\n", \
-         #St, __FILE__, __LINE__, __FUNCTION__, #err_const);
-                                                                                        //typeid(reason).name()    ???
+#define error_print(Stack_ptr, err_const, dump, filename, linenum, funcname)	fprintf (dump, "Stack (stack pointer: %s) error:"            \
+											      								"called from %s (line %d) function %s (error const is %s)\n", \
+    										      								#Stack_ptr, filename, linenum, funcname, #err_const);
+                                                                                        
+
+
+                                                                                //to do + rename
+#define stk_ctor(Stack_ptr, capacity) 	do {                                         \
+                							stack_ctor (Stack_ptr, capacity);         \
+                 							OK (Stack_ptr, dump_file);                 \
+				 					    } while (0)
+
+#define stk_push(Stack_ptr, figure) 	do {                                              \
+                        					stack_push (Stack_ptr, i, sizeof ( *figure));  \
+                            				OK (Stack_ptr, dump_file);                      \
+                        				} while (0)     
+   
+#define stk_pop(Stack_ptr, x) 			do {                                                   \
+                   							stack_pop (Stack_ptr, x);                           \
+                   							OK (Stack_ptr, dump_file);                           \
+										} while (0)  
+
+#define myassert(Stack_ptr) 			if (Sack_ptr == nullptr) {                                             \
+											Stack_ptr->err_f = BAD_PTR_ERROR;                                   \
+											dump_print (Stack_ptr, dump_file, __FILE__, __LINE__, __FUNCTION__); \
+                            				return 0; }
 
 
 
-#define st_ctor stack_ctor (St, St->capacity);\
-        OK (St, dump_file);
+Stack * new_stack     	  (int);
+int     stack_ctor        (Stack  *St, int capacity);  
 
-#define st_push stack_push (St, i);\
-        OK (St, dump_file);
+int     stack_push        (Stack  *St, void *value, size_t elem_size);
+int     stack_resize      (Stack  *St);											//static
+int     stack_pop         (Stack  *St, int *value);
 
-#define st_pop int x = stack_pop (St);\
-        OK (St, dump_file);
+int     stack_delete      (Stack  *St);
+int     stack_dtor        (Stack  *St);          
 
-#define st_resize stack_resize (St);\
-        OK (St, dump_file);
-
-
-
-int  stack_ctor         (Stack  *St, int capacity);          
-int  stack_push         (Stack  *St, int value);
-int  stack_resize       (Stack  *St);
-int  stack_pop          (Stack  *St);
-int  stack_dtor         (Stack **St);
-int  stack_verificator  (Stack  *St);
-void dump_print         (Stack *St, FILE *dump_file);
+int     stack_verificator (Stack  *St);
+void    dump_print        (Stack  *St, FILE *dump_file, char*, int, char*);
  
