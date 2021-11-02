@@ -1,31 +1,35 @@
 #include "stack_funcs.h"
 
+//#define check   (St, dump_file);                    //how to use?
+
+FILE *dump_file = nullptr;
+
 
 int main () {
 
+    if (!(dump_file = fopen ("dump.txt", "wb")))
+        printf ("File opening error! (in main.cpp, file: %s\n", "dump.txt");
+
     Stack *St = (Stack*) calloc (1, sizeof (Stack));
-    //OK
+    //OK (St, dump_file);
     
-    stack_ctor (St, St->capacity);
-    //OK
+    st_ctor
     
     printf ("enter stack capacity:\n");
     scanf ("%ld", &St->capacity);
 
     int t = St->capacity;
 
-    for (int i = 0; i < t; ++i) {
+    for (int i = 0; i < t+3; ++i) {
 
-        stack_push (St, i);
-        OK
+        st_push
 
-        int x = stack_pop (St);
-        OK
+        st_pop
+
         printf ("%d\n", x);
     }
 
     stack_dtor (&St);
-    //OK
 
     return 0;
 }
