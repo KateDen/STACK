@@ -2,34 +2,39 @@
 
 //#define check   (St, dump_file);                    //how to use?
 
-FILE *dump_file = nullptr;
+extern FILE *dump_file;
 
 
 int main () {
 
-    if (!(dump_file = fopen ("dump.txt", "wb")))
+    if (!(dump_file = fopen ("dump.txt", "wb"))) {
         printf ("File opening error! (in main.cpp, file: %s\n", "dump.txt");
-
-    Stack *St = (Stack*) calloc (1, sizeof (Stack));
-    //OK (St, dump_file);
+    }
     
-    st_ctor
+    Stack St = {}; 
+
+    Stack *st = new_stack (St->capacity); //(calloc + ctor)
+
+
+    size_t capacity = 0;
     
     printf ("enter stack capacity:\n");
-    scanf ("%ld", &St->capacity);
+    scanf ("%ld", &capacity);
+    
+    stk_ctor(&St, capacity);
 
-    int t = St->capacity;
+    int x = 0;
 
-    for (int i = 0; i < t+3; ++i) {
+    for (int i = 0; i < capacity+3; ++i) {
 
-        st_push
+        stk_push(&St, &i);
 
-        st_pop
+        stk_pop (&St, &x);
 
         printf ("%d\n", x);
     }
 
-    stack_dtor (&St);
+    delete_stack (&St);
 
     return 0;
 }
