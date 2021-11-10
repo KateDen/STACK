@@ -4,42 +4,58 @@ FILE *dump_file = nullptr;
 
 
 
+int *new_stack (Stack *St, long int capacity) {
+
+    myassert(St);
+
+    if (capacity < MIN_CAPACITY_CONST) {
+
+        St->data = (int *) calloc (MIN_CAPACITY_CONST, sizeof(int) + 2 * sizeof(canary_t));
+
+        St->data = St->data + sizeof (canary_t);
+
+        St->err_f = stack_ctor (St, capacity);
+    }
+
+    else {                          
+        
+        St->data = (int *) calloc (capacity, sizeof(int) + 2 * sizeof (canary_t)); 
+
+        St->data = St->data + sizeof (canary_t);
+
+        St->err_f = stack_ctor (St, capacity); 
+    } 
+
+    return St->data;
+}
+
+
 int stack_ctor (Stack *St, int capacity) {
 
     myassert(St);
 
-    St->err_f = 0;
-
-    if (capacity < MIN_CAPACITY_CONST) {
-        St->data = (int *) calloc (MIN_CAPACITY_CONST, sizeof(int));
-        if (St->data == nullptr) return BAD_ALLOC_ERROR;
-    }
-
-
-    else {
-
-        St->capacity = capacity;                                // to do
-        
-        St->data = (int *) calloc (St->capacity, sizeof(int));  
-        
-        if (St->data == nullptr) return BAD_ALLOC_ERROR;       
+    if (St->data == nullptr) return BAD_ALLOC_ERROR;
     
-    } 
+    *(canary_t *)(St->data - sizeof(canary_t))                = CANARY_CONST;
+    *(canary_t *)(St->data + St->capacity + sizeof(canary_t)) = CANARY_CONST;
 
-    St->size = 0;
-
+    St->err_f = 0;
+    St->size  = 0;
+    
+    St->capacity = capacity;
 
     return 0;
 }
 
 
-int stack_push (Stack *St, int value) {
+int stack_push (Stack *St, int value) {          
 
+    myassert (St);
     OK(St, dump_file);
 
     if (++St->size > St->capacity) {
         stack_resize (St);
-        if (St->size  == nullptr) {
+        if (St->data  == nullptr) {
             St->err_f = BAD_PTR_ERROR;
         }
 
@@ -52,44 +68,76 @@ int stack_push (Stack *St, int value) {
 }
 
 
-int stack_resize (Stack *St) {                                  // + define back resize - с запазданием на 4 + realloc checks (через tmp value)
+int stack_resize (Stack *St) {                            
 
     myassert(St);
 
+    int data_size_tmp = sizeof(St->data);
+
     St->capacity *= 2;
 
-    St->data = (int *) realloc (St->data, sizeof(int) * St->capacity);
+    St->data = (int *) realloc (St->data - sizeof(canary_t), sizeof(int) * St->capacity + 2 * sizeof(canary_t));
 
-    //if (St->size  == nullptr) return 1;                     //for what return 1? никуда 1 не присваивается
+    if (St->data == nullptr) {
+    St->err_f = BAD_ALLOC_ERROR;
+    return 0;
+    }
     
+    St->data = St->data + sizeof(canary_t);
+
+    return 0;
+}
+
+int back_stack_resize (Stack *St) {                                 
+
+    myassert(St);
+
+    St->capacity = St->capacity / 2;
+    
+    St->data = (int *) realloc (St->data - sizeof(canary_t), sizeof(int) * St->capacity + 2 * sizeof(canary_t));
+
+    if (St->data == nullptr) {
+    St->err_f = BAD_ALLOC_ERROR;
+    return 0;
+    }
+
+    St->data = St->data + sizeof(canary_t);
+
     return 0;
 }
 
 
-int stack_pop (Stack *St) {
-                                        //make my assert: nullptr check + log + return func
-    myassert(St);                 
-    //if size == 0 return
+
+int stack_pop (Stack *St, int *x) {
+
+    myassert(St);   
+
+    if (St->size == 0) {
+        St->err_f = ZERO_SIZE_ERROR;
+        return 0;
+    }              
 
     OK(St, dump_file);
 
-    int x = St->data [St->size - 1];
+    *x = (St->data [St->size - 1]);
 
     St->data [--St->size] = POISON;
 
     if (4 * St->size < St->capacity) {
-        stack_resize (St);
+        back_stack_resize (St);
     }
 
-    return x;
+    return 0;
 }
 
 int delete_stack (Stack *St) {
 
-    stck_dtor (St);
+    stack_dtor (St);
 
-    free (St);      
+    free (St);                    //not work - double free
     St = nullptr;
+
+    printf ("free done\n");
 
     return 0;
 }
@@ -105,6 +153,8 @@ int stack_dtor (Stack *St) {
     St->capacity = 0; 
     St->size     = 0;
     St->err_f    = 0;
+
+    //free (St);
 
     return 0;
 }
@@ -125,44 +175,57 @@ int stack_verificator (Stack *St) {
 
         if(!St->data)
             return BAD_ALLOC_ERROR;
-    }                                     
+
+        if (St->canary_begin != CANARY_CONST || St->canary_end != CANARY_CONST)
+            return CANARY_ERROR;
+
+        if (*(canary_t *)(St->data - sizeof(canary_t)) != CANARY_CONST || *(canary_t *)(St->data + St->capacity + sizeof(canary_t)) != CANARY_CONST)
+            return CANARY_CONST;
+
+        else return 0;
+    }                                  
                                                                 
     else return 0;
 }
 
 
-void dump_print (Stack *St, FILE *dump_file, char *filename, int linenum, char *funcname) {                   
+void dump_print (Stack *St, FILE *dump_file, const char *filename, int linenum, const char *funcname) {                   
 
     switch  (St->err_f) {
 
         case BAD_PTR_ERROR:
-            error_print(St, BAD_PTR_ERROR, dump_file);
+            error_print(St, BAD_PTR_ERROR, dump_file, filename, linenum, funcname);
             break;
 
-        case MEM_LACK:
-            error_print(St, MEM_LACK, dump_file);
+        case MEM_LACK_ERROR:
+            error_print(St, MEM_LACK, dump_file, filename, linenum, funcname);
             break;
 
-        case STACK_UNDERFLOW:                                       //to do
-            error_print(St, STACK_UNDERFLOW, dump_file);
+        case STACK_UNDERFLOW_ERROR:                                       //to do
+            error_print(St, STACK_UNDERFLOW, dump_file, filename, linenum, funcname);
             break;
             
-        case ZERO_CAPACITY:
-            error_print(St, ZERO_CAPACITY, dump_file);
+        case ZERO_CAPACITY_ERROR:
+            error_print(St, ZERO_CAPACITY, dump_file, filename, linenum, funcname);
             break;
 
         case BAD_ALLOC_ERROR:
-            error_print(St, BAD_ALLOC_ERROR, dump_file);
+            error_print(St, BAD_ALLOC_ERROR, dump_file, filename, linenum, funcname);
+            break;
+
+        case CANARY_ERROR:
+            error_print(St, CANARY_ERROR, dump_file, filename, linenum, funcname);
             break;
 
         default:
-            break;            
-    }
-
-    fprint (dump_file, "Stack capacity = %d\t Stack size = %d\n", St->capacity, St->size);
+            fprintf (dump_file, "Stack capacity = %ld\t Stack size = %ld\n", St->capacity, St->size);
+            break;
+        }
     
-    if (data != nullptr) {
-        for (int i = 0; i < St->size; ++i) {
+    if (St->data != nullptr) {
+        for (size_t i = 0; i < St->size; ++i) {
 
-            fprintf (dump_file, "current data is: %s", St->data[i]);
+            fprintf (dump_file, "current data is: %d\n\n", St->data[i]);
+        }
+    }
 }
