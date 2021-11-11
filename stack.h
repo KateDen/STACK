@@ -12,7 +12,7 @@ enum error_consts_ {                //rename
 	ZERO_MEMSET_ERROR     = 903,			//add memset
 	ZERO_SIZE_ERROR		  = 904,
 	BAD_ALLOC_ERROR       = 905,
-	MEM_LACK_ERROR        = 906,
+	MEM_LACK_ERROR        = 906, 
     BAD_PTR_ERROR         = 907,
 	RESIZE_ERROR          = 908,
 	CANARY_ERROR          = 909,
