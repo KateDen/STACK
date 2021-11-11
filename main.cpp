@@ -9,22 +9,21 @@ extern FILE *dump_file;
 
 int main () {
 
-    if (!(dump_file = fopen ("dump.txt", "wb"))) {
+    if (!(dump_file = fopen ("dump.txt", "wb"))) {                                      //далее по проге если dump_filr == nullptr печатать warning  при дебаг режиме
         printf ("File opening error! (in main.cpp, file: %s\n", "dump.txt");
     }
-    
-    Stack Stack_ = {}; 
-    Stack *St = &Stack_;
+
+    Stack *St = nullptr;
 
     long int capacity = 0;
     
     printf ("enter stack capacity:\n");
     scanf ("%ld", &capacity);
     
-    new_stack (St, capacity);
+    new_stack (&St, capacity);
 
 
-    int x = 0, i = 0;
+    elem_t x = 0, i = 0;
 
     for (; i < capacity + 3; ++i) {
 
@@ -35,7 +34,7 @@ int main () {
         printf ("%d\n", x);
     }
 
-    delete_stack (St);
+    delete_stack (&St);
 
     return 0;
 }
